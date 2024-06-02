@@ -50,3 +50,4 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
         Hy1 = np.where(Hy == np.min(Hy))[0]
     print(Hy1)
     print(Hy1)
+    print(Hy1)
