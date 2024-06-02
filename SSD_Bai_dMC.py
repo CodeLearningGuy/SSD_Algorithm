@@ -48,8 +48,3 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
 
         # 返回值H值最小的d-MP的索引
         Hy1 = np.where(Hy == np.min(Hy))[0]
-    print(Hy1)
-    print(Hy1)
-    print(Hy1)
-    print(Hy)
-    print(Hy1)
