@@ -13,9 +13,7 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
     # 假设 d_MP 已经是一个 NumPy 数组
     NP = d_MP.shape[0]
     R = 0
-    Q = 0
     k = 1
-    kk = 1
     b0 = mm * np.ones(m, dtype=int)
     b = 0 * np.ones(m).astype(np.int32)
     b0_mat = np.zeros((100, m)).astype(np.int32)
@@ -47,7 +45,6 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
         Hy = np.zeros(nnp).astype(np.int32)
         ww = np.zeros((nnp, m)).astype(np.int32)
         for l in range(nnp):
-            v0_pri = np.max(np.vstack((yy[l, :], b)), axis=0)
             for j in range(m):
                 ww[l, j] = np.max([yy[l, j], b[j]]) - v[j]  # (b0-vl+1)*Pr
             Hy[l] = np.sum(ww[l, :])
@@ -64,39 +61,12 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
         max_val, max_posi = np.min(Hy), np.argmin(Hy)
         v0 = np.max(np.vstack((yy[max_posi, :m], b)), axis=0)
 
-        # temp_pp = np.zeros(m)
-        # for j in range(m):
-        #     temp_pp[j] = Pr[v0[j] + 1]
-        # pp = np.prod(temp_pp)
         temp_p = np.zeros(m)
         for j in range(m):
             temp_p[j] = np.sum(Pr[j, (v0[j]):(b0[j] + 1)])
         R += np.prod(temp_p)
         # logger.debug("R = {}", R)
         # logging.debug("R is :{}".format(R))
-
-        # # 更新可靠度上界
-        # temp_p1 = np.zeros(m)
-        # temp_p3 = np.zeros(m)
-        # for j in range(m):
-        #     temp_p1[j] = np.sum(Pr[j, (v[j]):(b0[j] + 1)])
-        #     temp_p3[j] = np.sum(Pr[j, (b[j]):(b0[j] + 1)])
-        # temp = np.prod(temp_p3) - np.prod(temp_p1)
-        # Q += temp
-        # U = 1 - Q
-        # DR = U - R
-        # if kk == 1:
-        #     if int(U * 10) == int(R * 10):
-        #         T[kk - 1, 0] = 1 - Q
-        #         T[kk - 1, 1] = R
-        #         T[kk - 1, 2] = time.time() - start_time
-        #         kk += 1
-        # if 1 < kk < 10:
-        #     if DR < 10 ** (-kk):
-        #         T[kk - 1, 0] = 1 - Q
-        #         T[kk - 1, 1] = R
-        #         T[kk - 1, 2] = time.time() - start_time
-        #         kk += 1
 
         # 更新状态空间的上下边界矩阵b0, b
         s = 0
