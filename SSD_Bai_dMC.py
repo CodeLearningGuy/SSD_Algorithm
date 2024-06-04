@@ -12,8 +12,8 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
     k = 1
     b = mm * np.ones(m, dtype=int)
     b0 = 0 * np.ones(m, dtype=int)
-    b_mat = np.empty((0, m), dtype=int)
-    b0_mat = np.empty((0, m), dtype=int)
+    b_mat = np.zeros((100, m), dtype=int)
+    b0_mat = np.empty((100, m), dtype=int)
     ind_mat = d_MC_num * np.ones((100, 1), dtype=int)
     x = 0
     start_time = time.time()
@@ -41,10 +41,62 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
         Hy = np.zeros(nnp, dtype=int)
         ww = np.zeros((nnp, m), dtype=int)
         for l in range(nnp):
-            v0_pri = np.max(np.vstack((yy[l, :], b)), axis=0)
             for j in range(m):
-                ww[l, j] = np.max([yy[l, j], b[j]]) - v[j]  # (b0-vl+1)*Pr
+                ww[l, j] = v[j] - np.min([yy[l, j], b[j]])  # 计算H(cl)
             Hy[l] = np.sum(ww[l, :])
 
-        # 返回值H值最小的d-MP的索引
-        Hy1 = np.where(Hy == np.min(Hy))[0]
+        # 返回值H值最大的且相同的d-MC中的第一个索引
+        Hy1 = np.where(Hy == np.max(Hy))[0]
+
+        # 在合格d-MC cl中选择一个生成下边界向量v0
+        max_val, max_posi = np.max(Hy), np.argmax(Hy)
+        v0 = np.min(np.vstack((yy[max_posi, :m], b)), axis=0)
+
+        # 计算合格空间的不可靠度
+        temp_p = np.zeros(m)
+        for j in range(m):
+            temp_p[j] = np.sum(Pr[j, (b0[j]):(v0[j] + 1)])
+        U += np.prod(temp_p)
+
+        # 更新状态空间的上下边界向量矩阵b, b0
+        s = 0
+        a = np.zeros(m)
+        for j in range(m):
+            if v[j] > v0[j]:
+                a[s] = j
+                s += 1
+        if s > 0:
+            for d in range(s):
+                for j in range(m):
+                    if j == a[d]:
+                        b0_mat[d + k - 1, j] = v0[j] + 1
+                    else:
+                        b0_mat[d + k - 1, j] = b0[j]
+                    if j < a[d]:
+                        b_mat[d + k - 1, j] = v0[j]
+                    else:
+                        b_mat[d + k - 1, j] = v[j]
+                ind_mat[d + k - 1] = w
+        k = k - 1 + s
+
+        if k == 0:
+            break
+        else:
+            # debug过程中发现:若不进行拷贝(.copy),则矩阵b0_mat变动,b0随之变动
+            b0 = b0_mat[k - 1, :].copy()
+            b = b_mat[k - 1]
+            x += 1
+    caltime = time.time() - start_time
+    return 1-U, caltime
+
+if __name__ == '__main__':
+    ########### Example 2 ###########
+    dmc = np.array([[1, 2, 1, 1, 1, 2],[3, 0, 1, 1, 1, 2],[3, 1, 1, 1, 1, 1],[3, 2, 1, 1, 1, 0],
+                    [2, 2, 1, 1, 0, 2],[3, 2, 0, 1, 0, 2],[3, 1, 1, 1, 0, 2],[3, 1, 0, 1, 1, 2]])
+    prob = np.array([[0.05,0.1,0.25,0.6],[0.1,0.3,0.6,0],[0.1,0.9,0,0],
+                     [0.1,0.9,0,0],[0.1,0.9,0,0],[0.05,0.25,0.7,0]])
+    m = 6
+    mm = 3
+    R, caltime = SSD(dmc, prob, m, mm)  # R = 0.611415
+    print("可靠度:", R)
+    print("计算时间:", caltime)
