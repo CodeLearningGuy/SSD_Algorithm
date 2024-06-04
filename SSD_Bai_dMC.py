@@ -100,3 +100,4 @@ if __name__ == '__main__':
     R, caltime = SSD(dmc, prob, m, mm)  # R = 0.611415
     print("可靠度:", R)
     print("计算时间:", caltime)
+
