@@ -141,5 +141,5 @@ if __name__ == "__main__":
 
     print("\n路集矩阵:")
     print(matrix)
-    print("网络中的最小路集数量:", matrix.shape[0])
 
+    print("网络中的最小路集数量:", matrix.shape[0])
