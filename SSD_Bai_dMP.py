@@ -11,10 +11,16 @@ logging.basicConfig(level=logging.DEBUG,filename='test_log.txt',filemode='w',for
 
 def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
     # 假设 d_MP 已经是一个 NumPy 数组
+    # m是组件（边）数, mm是所有组件一致的最大容量
+    v0_matrix = np.empty((0, m), dtype=int)
+    b0_matrix = np.empty((0, m), dtype=int)
+
     NP = d_MP.shape[0]
     R = 0
     k = 1
     b0 = mm * np.ones(m, dtype=int)
+    # b0 = np.array([1, 2, 1, 1, 1, 2])
+
     b = 0 * np.ones(m).astype(np.int32)
     b0_mat = np.zeros((100, m)).astype(np.int32)
     b_mat = np.zeros((100, m)).astype(np.int32)
@@ -61,6 +67,10 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
         max_val, max_posi = np.min(Hy), np.argmin(Hy)
         v0 = np.max(np.vstack((yy[max_posi, :m], b)), axis=0)
 
+        # 记录由所有d-MP分解得到的所有空间的上下界向量矩阵
+        v0_matrix = np.vstack([v0_matrix, v0])
+        b0_matrix = np.vstack([b0_matrix, b0])
+
         temp_p = np.zeros(m)
         for j in range(m):
             temp_p[j] = np.sum(Pr[j, (v0[j]):(b0[j] + 1)])
@@ -99,11 +109,11 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
         logging.debug("b0 = {}".format(b0))
         logging.debug("x = {}".format(x))
     caltime = time.time() - start_time
-    return R, caltime
+    return R, caltime, v0_matrix, b0_matrix
 
 
 if __name__ == '__main__':
-    # ########### Example 1 ###########
+    # ################################# Example 1 #################################
     # dmp = np.array([[1,0,0,0,0,0,1,0,0,1,0],[1,0,0,1,0,0,0,1,0,1,0],[0,1,0,0,1,0,0,1,0,1,0],
     #                [0,1,1,0,0,1,0,1,0,1,0] ,[0,1,1,0,0,0,0,0,1,1,0] ,[0,1,1,0,0,0,0,0,0,0,1]])
     # prob = np.ones((11, 3)) * np.array([0.4, 0.3, 0.3])
@@ -111,13 +121,34 @@ if __name__ == '__main__':
     # mm = 2
     # R, caltime = SSD(dmp, prob, m, mm)
     # print("可靠度:", R)
-    ########### Example 2 ###########
-    dmp = np.array([[3,2,1,0,0,1],[2,1,1,0,1,2],[2,2,0,0,1,1]])
-    prob = np.array([[0.05,0.1,0.25,0.6],[0.1,0.3,0.6,0],[0.1,0.9,0,0],
-                     [0.1,0.9,0,0],[0.1,0.9,0,0],[0.05,0.25,0.7,0]])
+    # ################################# Example 2 #################################
+    # # 3-MP
+    # dmp = np.array([[3,2,1,0,0,1],[2,1,1,0,1,2],[2,2,0,0,1,1]])
+    # prob = np.array([[0.05,0.1,0.25,0.6],[0.1,0.3,0.6,0],[0.1,0.9,0,0],
+    #                  [0.1,0.9,0,0],[0.1,0.9,0,0],[0.05,0.25,0.7,0]])
+    # m = 6
+    # mm = 3
+    # R, caltime, v0_mat, b0_mat = SSD(dmp, prob, m, mm)  # R = 0.6114149999999999
+    # print("可靠度:", R)
+    # print("计算时间:", caltime)
+    ################################# My_Idea #################################
     m = 6
     mm = 3
-    R, caltime = SSD(dmp, prob, m, mm)  # R = 0.6114149999999999
+    # 2-MP 9个
+    dmp = np.array([[2, 2, 0, 0, 0, 0], [1, 2, 0, 1, 1, 0], [0, 2, 0, 2, 2, 0], [1, 1, 0, 0, 1, 1],
+                    [0, 1, 0, 1, 2, 1], [2, 1, 1, 0, 0, 1], [0, 0, 0, 0, 2, 2], [1, 0, 1, 0, 1, 2],
+                    [2, 0, 2, 0, 0, 2]])
+    # # 3-MP 16个
+    # dmp = np.array([[3, 0, 0, 0, 3, 0], [2, 1, 1, 0, 3, 0], [1, 2, 2, 0, 3, 0], [0, 3, 3, 0, 3, 0],
+    #                 [2, 1, 0, 0, 2, 1], [1, 2, 1, 0, 2, 1], [0, 3, 2, 0, 2, 1], [3, 0, 0, 1, 2, 1],
+    #                 [1, 2, 0, 0, 1, 2], [0, 3, 1, 0, 1, 2], [2, 1, 0, 1, 1, 2], [3, 0, 0, 2, 1, 2],
+    #                 [0, 3, 0, 0, 0, 3], [1, 2, 0, 1, 0, 3], [2, 1, 0, 2, 0, 3], [3, 0, 0, 3, 0, 3]])
+    prob = np.ones((m, 4), dtype=int) * np.array([0.25,0.3,0.25,0.2])
+    R, caltime, v0_mat, b0_mat = SSD(dmp, prob, m, mm)
+    # print("v0_mat = \n", v0_mat)
+    # print("b0_mat = \n", b0_mat)
     print("可靠度:", R)
     print("计算时间:", caltime)
+
+
 
