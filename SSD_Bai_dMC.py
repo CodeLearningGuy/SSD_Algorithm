@@ -12,6 +12,11 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
     k = 1
     b = mm * np.ones(m, dtype=int)
     b0 = 0 * np.ones(m, dtype=int)
+    # b0 = np.array([1, 2, 1, 2, 1])
+
+    b0_matrix = np.empty((0, m), dtype=int)  # 存储下界
+    v0_matrix = np.empty((0, m), dtype=int)  # 存储上界
+
     b_mat = np.zeros((100, m), dtype=int)
     b0_mat = np.empty((100, m), dtype=int)
     ind_mat = d_MC_num * np.ones((100, 1), dtype=int)
@@ -49,8 +54,13 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
         Hy1 = np.where(Hy == np.max(Hy))[0]
 
         # 在合格d-MC cl中选择一个生成下边界向量v0
-        max_val, max_posi = np.max(Hy), np.argmax(Hy)
+        # max_val, max_posi = np.max(Hy), np.argmax(Hy)
+        ax_val, max_posi = np.min(Hy), np.argmin(Hy)  # 基于d-MC的分解也应该选择H(zl)最小的d-MC
         v0 = np.min(np.vstack((yy[max_posi, :m], b)), axis=0)
+
+        # 记录由所有d-MC分解得到的所有空间的上下界向量矩阵
+        v0_matrix = np.vstack([v0_matrix, v0])
+        b0_matrix = np.vstack([b0_matrix, b0])
 
         # 计算合格空间的不可靠度
         temp_p = np.zeros(m)
@@ -87,7 +97,7 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
             b = b_mat[k - 1]
             x += 1
     caltime = time.time() - start_time
-    return 1-U, caltime
+    return 1-U, caltime, b0_matrix, v0_matrix
 
 if __name__ == '__main__':
     ########### Example 2 ###########
@@ -107,17 +117,21 @@ if __name__ == '__main__':
     ################################# My_Idea #################################
     m = 6
     mm = 3
-    # 1-MC 10个
-    dmc = np.array([[3, 3, 3, 3, 0, 1],[3, 3, 3, 3, 1, 0],[0, 3, 1, 3, 3, 3],[1, 3, 0, 3, 3, 3],
-                    [0, 0, 3, 3, 3, 1],[0, 1, 3, 3, 3, 0],[1, 0, 3, 3, 3, 0],[3, 3, 0, 0, 1, 3],
-                    [3, 3, 0, 1, 0, 3],[3, 3, 1, 0, 0, 3]])
-    # # 2-MC 18个
-    # dmc = np.array([[3, 3, 3, 3, 0, 2],[3, 3, 3, 3, 1, 1],[3, 3, 3, 3, 2, 0],[0, 3, 2, 3, 3, 3],
-    #                 [1, 3, 1, 3, 3, 3],[2, 3, 0, 3, 3, 3],[0, 0, 3, 3, 3, 2],[0, 1, 3, 3, 3, 1],
-    #                 [0, 2, 3, 3, 3, 0],[1, 0, 3, 3, 3, 1],[1, 1, 3, 3, 3, 0],[2, 0, 3, 3, 3, 0],
-    #                 [3, 3, 0, 0, 2, 3],[3, 3, 0, 1, 1, 3],[3, 3, 0, 2, 0, 3],[3, 3, 1, 0, 1, 3],
-    #                 [3, 3, 1, 1, 0, 3],[3, 3, 2, 0, 0, 3]])
+    # # 1-MC 10个
+    # dmc = np.array([[3, 3, 3, 3, 0, 1],[3, 3, 3, 3, 1, 0],[0, 3, 1, 3, 3, 3],[1, 3, 0, 3, 3, 3],
+    #                 [0, 0, 3, 3, 3, 1],[0, 1, 3, 3, 3, 0],[1, 0, 3, 3, 3, 0],[3, 3, 0, 0, 1, 3],
+    #                 [3, 3, 0, 1, 0, 3],[3, 3, 1, 0, 0, 3]])
+    # 2-MC 18个
+    dmc = np.array([[3, 0, 3, 3, 3, 2], [3, 1, 3, 3, 3, 1], [3, 2, 3, 3, 3, 0], [0, 3, 3, 3, 2, 3],
+                    [1, 3, 3, 3, 1, 3], [2, 3, 3, 3, 0, 3], [0, 3, 3, 0, 3, 2], [0, 3, 3, 1, 3, 1],
+                    [0, 3, 3, 2, 3, 0], [1, 3, 3, 0, 3, 1], [1, 3, 3, 1, 3, 0], [2, 3, 3, 0, 3, 0],
+                    [3, 2, 0, 3, 0, 3], [3, 1, 1, 3, 0, 3], [3, 0, 2, 3, 0, 3], [3, 1, 0, 3, 1, 3],
+                    [3, 0, 1, 3, 1, 3], [3, 0, 0, 3, 2, 3]])
+    # dmc = np.array([[3, 2, 3, 3, 3], [3, 3, 3, 2, 3]])
     prob = np.ones((m, 4), dtype=int) * np.array([0.25,0.3,0.25,0.2])
-    R, caltime = SSD(dmc, prob, m, mm)
+    R, caltime, b0_mat, v0_mat = SSD(dmc, prob, m, mm)
+    print("b0_mat = \n", b0_mat)
+    print("v0_mat = \n", v0_mat)
     print("可靠度:", R)
     print("计算时间:", caltime)
+
