@@ -111,6 +111,3 @@ result_8 = np.vstack((result_5, result_6, result_7))
 sorted_result_4 = partial_order_sort(result_4)
 sorted_result_8 = partial_order_sort(result_8)
 print(matrices_are_equal(sorted_result_4, sorted_result_8))
-
-
-
