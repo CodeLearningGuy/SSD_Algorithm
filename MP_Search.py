@@ -185,4 +185,3 @@ if __name__ == "__main__":
     print("网络中的最小路集数量:", matrix.shape[0])
     print("计算时间:", caltime)
 
-
