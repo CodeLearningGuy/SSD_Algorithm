@@ -1,5 +1,4 @@
-
-
+import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import time
@@ -16,6 +15,7 @@ def read_network():
     # G.add_edge('1', 't', capacity=2)
     # G.add_edge('2', 't', capacity=2)
     # Example-2-许贝师姐大论文-ARPA网络（无向）-Fig.5.2-6节点9边
+    # 1
     # G.add_edge('s', '1', capacity=7)
     # G.add_edge('s', '2', capacity=5)
     # G.add_edge('1', '2', capacity=4)
@@ -25,6 +25,7 @@ def read_network():
     # G.add_edge('3', '4', capacity=4)
     # G.add_edge('3', 't', capacity=6)
     # G.add_edge('4', 't', capacity=7)
+    # 2
     G.add_edge('s', '1', capacity=10)
     G.add_edge('s', '2', capacity=10)
     G.add_edge('1', '2', capacity=10)
@@ -73,55 +74,52 @@ def calculate_Li(G, d):
     return Li
 
 
-# # 根据论文定理2实现d-MP候选的枚举
-# def enumerate_dMP_candidates(G, d, Li):
-#     # 获取从源节点到目标节点的所有简单路径
-#     paths = list(nx.all_simple_paths(G, source='s', target='t'))
-#     # 计算路径的数量
+# # 递归生成所有和为d的流向量组合_2
+# def generate_flow_vectors(p, d):
+#     def helper(p, d, current):
+#         if p == 1:
+#             yield current + [d]
+#         else:
+#             for i in range(d+1):
+#                 yield from helper(p-1, d-i, current + [i])
+#     return list(helper(p, d, []))
+
+# # 枚举所有d-MP候选路径
+# def enumerate_dMP_candidates(G, d, Li, paths):
 #     p = len(paths)
-#     # 计算每条路径Pj的最大容量Uj，Uj是每条路径上所有边的最小容量
 #     Uj = [min([G[u][v]['capacity'] for u, v in zip(path[:-1], path[1:])]) for path in paths]
-#     # 初始化d-MP候选路径列表
+#     min_Uj = [min(uj, d) for uj in Uj]
 #     candidates = []
-#     # 生成所有可能的流向量组合
-#     for flow_vector in product(range(d + 1), repeat=p):
-#         # 如果流向量的总和不等于d，则跳过该组合
-#         if sum(flow_vector) != d:
-#             continue
-#         # 假设当前流向量组合有效
+#     begin_t = time.time()
+#     flow_vectors = generate_flow_vectors(p, d)
+#     print(len(flow_vectors))
+#     end_t = time.time() - begin_t
+#     print("生成流向量组合所需时间 = ", end_t)
+#     begin_t = time.time()
+#     for flow_vector in flow_vectors:
 #         valid = True
-#         # 初始化每条边的流量为0
 #         x = {edge: 0 for edge in G.edges()}
-#         # 遍历每条路径，检查路径上的流量是否符合约束
 #         for j, path in enumerate(paths):
-#             # 如果流量超过路径的最大容量，则标记为无效
-#             if flow_vector[j] > Uj[j]:
+#             if flow_vector[j] > min_Uj[j]:
 #                 valid = False
 #                 break
-#             if flow_vector[j] != 0:
-#                 # 更新路径上每条边的流量
-#                 for u, v in zip(path[:-1], path[1:]):
-#                     if (u, v) in x:
-#                         x[(u, v)] += flow_vector[j]
-#                     else:
-#                         x[(v, u)] += flow_vector[j]  # 无向边，更新相反方向的边
-#         if valid:
-#             # 检查每条边的流量是否符合Li的限制
-#             for (u, v), capacity in x.items():
-#                 # 如果边的流量小于Li值或大于边的最大容量，则标记为无效
-#                 if capacity < Li[(u, v)] or capacity > min(G[u][v]['capacity'], d):
-#                     valid = False
-#                     break
-#         else:
-#             continue
-#         # 如果组合有效，则将其添加到候选列表中
+#             for u, v in zip(path[:-1], path[1:]):
+#                 if (u, v) in x:
+#                     x[(u, v)] += flow_vector[j]
+#                 else:
+#                     x[(v, u)] += flow_vector[j]  # 无向边，更新相反方向的边
+#         for (u, v), capacity in x.items():
+#             if capacity < Li[(u, v)] or capacity > min(G[u][v]['capacity'], d):
+#                 valid = False
+#                 break
 #         if valid:
 #             candidates.append(x)
-#     # 返回所有满足条件的d-MP候选路径
+#     end_t = time.time() - begin_t
+#     print("验证流向量组合所需时间 = ", end_t)
 #     return candidates
 
 
-# 递归生成所有和为d的流向量组合_2
+# 递归生成所有和为d的流向量组合_3
 def generate_flow_vectors(p, d):
     def helper(p, d, current):
         if p == 1:
@@ -131,37 +129,45 @@ def generate_flow_vectors(p, d):
                 yield from helper(p-1, d-i, current + [i])
     return list(helper(p, d, []))
 
+# 构建路径-边矩阵
+def build_path_edge_matrix(paths, edges):
+    edge_index = {edge[:2]: i for i, edge in enumerate(edges)}
+    p = len(paths)
+    e = len(edges)
+    A = np.zeros((p, e), dtype=int)
+    for i, path in enumerate(paths):
+        for u, v in zip(path[:-1], path[1:]):
+            if (u, v) in edge_index:
+                A[i][edge_index[(u, v)]] = 1
+            else:
+                A[i][edge_index[(v, u)]] = 1
+    return A
 
 # 枚举所有d-MP候选路径
 def enumerate_dMP_candidates(G, d, Li, paths):
+    edges = list(G.edges(data=True))
     p = len(paths)
-    Uj = [min([G[u][v]['capacity'] for u, v in zip(path[:-1], path[1:])]) for path in paths]
+    Uj = np.array([min([G[u][v]['capacity'] for u, v in zip(path[:-1], path[1:])]) for path in paths])
     min_Uj = [min(uj, d) for uj in Uj]
+    A = build_path_edge_matrix(paths, edges)
+
     candidates = []
     begin_t = time.time()
     flow_vectors = generate_flow_vectors(p, d)
     print(len(flow_vectors))
     end_t = time.time() - begin_t
     print("生成流向量组合所需时间 = ", end_t)
+
     begin_t = time.time()
     for flow_vector in flow_vectors:
-        valid = True
-        x = {edge: 0 for edge in G.edges()}
-        for j, path in enumerate(paths):
-            if flow_vector[j] > min_Uj[j]:
-                valid = False
-                break
-            for u, v in zip(path[:-1], path[1:]):
-                if (u, v) in x:
-                    x[(u, v)] += flow_vector[j]
-                else:
-                    x[(v, u)] += flow_vector[j]  # 无向边，更新相反方向的边
-        for (u, v), capacity in x.items():
-            if capacity < Li[(u, v)] or capacity > min(G[u][v]['capacity'], d):
-                valid = False
-                break
-        if valid:
-            candidates.append(x)
+        flow_vector = np.array(flow_vector)
+        if np.any(flow_vector > min_Uj):
+            continue
+        x = A.T @ flow_vector
+        if all(Li[edge[:2]] <= x[i] <= min(G[edge[0]][edge[1]]['capacity'], d) for i, edge in enumerate(edges)):
+            candidate = {edges[i][:2]: x[i] for i in range(len(edges))}
+            candidates.append(candidate)
+
     end_t = time.time() - begin_t
     print("验证流向量组合所需时间 = ", end_t)
     return candidates
@@ -211,7 +217,7 @@ def find_dMPs(G, d):
 
 # 示例运行
 G = read_network()
-d = 20
+d = 12
 dMPs, Calcu_time = find_dMPs(G, d)
 # print('\n', dMPs)
 print("计算时间 = ", Calcu_time)
