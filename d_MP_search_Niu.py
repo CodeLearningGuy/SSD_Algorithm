@@ -73,7 +73,7 @@ def calculate_Li(G, d):
     return Li
 
 
-# # 根据论文中定理2实现d-MP候选的枚举
+# # 根据论文定理2实现d-MP候选的枚举
 # def enumerate_dMP_candidates(G, d, Li):
 #     # 获取从源节点到目标节点的所有简单路径
 #     paths = list(nx.all_simple_paths(G, source='s', target='t'))
