@@ -226,7 +226,6 @@ if __name__ == '__main__':
     row_vector_3sf = np.array([0.015, 0.030, 0.045, 0.061, 0.076, 0.091, 0.106, 0.121, 0.136, 0.152, 0.167])
     prob = np.tile(row_vector_3sf, (9, 1))
 
-
     start_time = time.time()
     Reliability, Num_space, Down_matrix, Up_matrix = up_down_decom(d_mp, d_mc, prob, m, c)
     Calcu_time = time.time() - start_time
