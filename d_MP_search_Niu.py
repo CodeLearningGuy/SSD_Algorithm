@@ -8,11 +8,11 @@ from networkx.algorithms.flow import preflow_push
 # 读取网络数据
 def read_network():
     G = nx.Graph()
-    # # Example-1-桥网络（无向）
+    # Example-1-NYF-2020-Fig-2（无向桥网络）
     # G.add_edge('s', '1', capacity=3)
-    # G.add_edge('s', '2', capacity=2)
-    # G.add_edge('1', '2', capacity=1)
     # G.add_edge('1', 't', capacity=2)
+    # G.add_edge('1', '2', capacity=1)
+    # G.add_edge('s', '2', capacity=2)
     # G.add_edge('2', 't', capacity=2)
     # Example-2-许贝师姐大论文-ARPA网络（无向）-Fig.5.2-6节点9边
     # 1
@@ -35,6 +35,27 @@ def read_network():
     G.add_edge('3', '4', capacity=10)
     G.add_edge('3', 't', capacity=10)
     G.add_edge('4', 't', capacity=10)
+    # Example-3-牛义锋2020-Fig.4（无向）-16节点20边
+    # G.add_edge('s', '1', capacity=4)
+    # G.add_edge('s', '4', capacity=4)
+    # G.add_edge('1', '2', capacity=4)
+    # G.add_edge('1', '5', capacity=4)
+    # G.add_edge('2', '3', capacity=4)
+    # G.add_edge('3', '7', capacity=4)
+    # G.add_edge('4', '5', capacity=4)
+    # G.add_edge('4', '8', capacity=4)
+    # G.add_edge('5', '6', capacity=4)
+    # G.add_edge('5', '9', capacity=4)
+    # G.add_edge('6', '10', capacity=4)
+    # G.add_edge('7', '11', capacity=4)
+    # G.add_edge('8', '12', capacity=4)
+    # G.add_edge('9', '10', capacity=4)
+    # G.add_edge('10', '11', capacity=4)
+    # G.add_edge('10', '14', capacity=4)
+    # G.add_edge('11', 't', capacity=4)
+    # G.add_edge('12', '13', capacity=4)
+    # G.add_edge('13', '14', capacity=4)
+    # G.add_edge('14', 't', capacity=4)
     return G
 
 
@@ -60,6 +81,7 @@ def max_flow(G, source, sink):
     # return flow_value
     return flow_value.graph["flow_value"]
 
+
 # 计算Li值
 def calculate_Li(G, d):
     Li = {}
@@ -74,7 +96,7 @@ def calculate_Li(G, d):
     return Li
 
 
-# # 递归生成所有和为d的流向量组合_2
+# # 递归生成所有和为d的流向量组合_1
 # def generate_flow_vectors(p, d):
 #     def helper(p, d, current):
 #         if p == 1:
@@ -119,15 +141,17 @@ def calculate_Li(G, d):
 #     return candidates
 
 
-# 递归生成所有和为d的流向量组合_3
+# 递归生成所有和为d的流向量组合_2
 def generate_flow_vectors(p, d):
     def helper(p, d, current):
         if p == 1:
             yield current + [d]
         else:
-            for i in range(d+1):
-                yield from helper(p-1, d-i, current + [i])
+            for i in range(d + 1):
+                yield from helper(p - 1, d - i, current + [i])
+
     return list(helper(p, d, []))
+
 
 # 构建路径-边矩阵
 def build_path_edge_matrix(paths, edges):
@@ -143,10 +167,12 @@ def build_path_edge_matrix(paths, edges):
                 A[i][edge_index[(v, u)]] = 1
     return A
 
+
 # 枚举所有d-MP候选路径
 def enumerate_dMP_candidates(G, d, Li, paths):
     edges = list(G.edges(data=True))
     p = len(paths)
+    print("网络最小路数量 = ", p)
     Uj = np.array([min([G[u][v]['capacity'] for u, v in zip(path[:-1], path[1:])]) for path in paths])
     min_Uj = [min(uj, d) for uj in Uj]
     A = build_path_edge_matrix(paths, edges)
@@ -154,7 +180,7 @@ def enumerate_dMP_candidates(G, d, Li, paths):
     candidates = []
     begin_t = time.time()
     flow_vectors = generate_flow_vectors(p, d)
-    print(len(flow_vectors))
+    print("生成的流向量组合数 = ", len(flow_vectors))
     end_t = time.time() - begin_t
     print("生成流向量组合所需时间 = ", end_t)
 
@@ -189,6 +215,7 @@ def verify_dMP(G, candidate, d):
             G_copy[u][v]['capacity'] = capacity  # 恢复边容量
     return True
 
+
 # 删除重复的d-MP路径
 def remove_duplicates(dMP_candidates):
     unique_candidates = []
@@ -200,9 +227,25 @@ def remove_duplicates(dMP_candidates):
             seen.add(candidate_tuple)
     return unique_candidates
 
+
+# 将dMPs转换为矩阵形式
+def convert_dMPs_to_matrix(dMPs, edge_index):
+    matrix = []
+    for dMP in dMPs:
+        state_vector = [0] * len(edge_index)
+        for edge, state in dMP.items():
+            if edge in edge_index:
+                state_vector[edge_index[edge]] = state
+            # 处理相反方向的边
+            else:
+                state_vector[edge_index[(edge[1], edge[0])]] = state
+        matrix.append(state_vector)
+    return np.array(matrix)
+
+
 # 主算法
-def find_dMPs(G, d):
-    print("算法开始")
+def find_dMPs(G, d, edge_index):
+    print("《算法开始》")
     Paths = list(nx.all_simple_paths(G, source='s', target='t'))
     start_time = time.time()
     Li = calculate_Li(G, d)
@@ -211,14 +254,30 @@ def find_dMPs(G, d):
     verified_dMPs = [candidate for candidate in dMP_candidates if verify_dMP(G, candidate, d)]
     end_t = time.time() - begin_t
     print("验证d-MPs所需时间 = ", end_t)
+    begin_t = time.time()
     unique_dMPs = remove_duplicates(verified_dMPs)
+    end_t = time.time() - begin_t
+    print("d-MPs去重所需时间 = ", end_t)
     calcu_time = time.time() - start_time
-    return unique_dMPs, calcu_time
+    d_mp_matrix = convert_dMPs_to_matrix(unique_dMPs, edge_index)
+    return d_mp_matrix, calcu_time
+
 
 # 示例运行
 G = read_network()
-d = 12
-dMPs, Calcu_time = find_dMPs(G, d)
-# print('\n', dMPs)
-print("计算时间 = ", Calcu_time)
+d = 3
+# 用户指定的边编号顺序, 如果不需要编号则下面为默认选项
+# edge_index = {edge[:2]: i for i, edge in enumerate(G.edges(data=True))}
+# Example-1-NYF-2020-Fig-2（无向桥网络）
+# edge_index = {('s', '1'): 0, ('1', 't'): 1, ('1', '2'): 2,
+#               ('s', '2'): 3, ('2', 't'): 4}
+# Example-2-许贝师姐大论文-ARPA网络（无向）-Fig.5.2-6节点9边
+edge_index = {('s', '1'): 0, ('s', '2'): 1, ('1', '2'): 2,
+              ('1', '3'): 3, ('2', '3'): 4, ('2', '4'): 5,
+              ('3', '4'): 6, ('3', 't'): 7, ('4', 't'): 8}
+d_MP_Mat, Calcu_time = find_dMPs(G, d, edge_index)
+print("总计算时间 = ", Calcu_time)
+# print(d_MP_Mat)
+# np.save('Bridge_4_MP_Mat.npy', d_MP_Mat)
+np.save('ARPA_3_MP_Mat.npy', d_MP_Mat)
 
