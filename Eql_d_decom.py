@@ -5,6 +5,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG,filename='test_log.txt',filemode='w',format='%(asctime)s [line:%(lineno)d] %(levelname)s: %(message)s')
 from scipy.io import loadmat
 
+
 def up_down_decom(d_MP, d_MC, Pr, num, cap):
     # 网络恰好满足需求水平d时的可靠度
     R = 0
@@ -30,7 +31,10 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
 
     for i in range(n_d_MC):
         b0 = d_MC[i, :]
+        b = 0 * np.ones(num).astype(np.int32)
         b0_mat = np.zeros((100, num)).astype(np.int32)
+        b_mat = np.zeros((100, num)).astype(np.int32)
+
         ind_mat = n_d_MP * np.ones(100, dtype=int)
         # k表示此次分解得到的空间数量
         k = 1
@@ -57,7 +61,10 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
             # 求d-MP最小值组成的z*
             z_star = np.min(qlfd_d_MP, axis=0)
             # 关键下界向量v（一般和z*一致）, v<v0
-            v = z_star
+            # v = z_star
+
+            v = np.max(np.vstack((z_star, b)), axis=0)
+
             # 根据启发式规则计算所有d-MP的H值,然后选择一个d-MP求v0, v<v0
             difference_matrix = qlfd_d_MP - v
             H = np.sum(difference_matrix, axis=1)
@@ -71,11 +78,17 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
 
             # 任意选择（第一个）一个H值最小的合格d-MP作为v0, v<v0
             sel_H_min_ind = H_min_ind[0]
-            v0 = qlfd_d_MP[sel_H_min_ind, :]
+            # v0 = qlfd_d_MP[sel_H_min_ind, :]
+            v0 = np.max(np.vstack((qlfd_d_MP[sel_H_min_ind, :], b)), axis=0)
+
+            # print(v0)
+
             sel_d_MP_ind = qlfd_d_MP_ind[sel_H_min_ind]
             # 记录经过多次分解后每个d-MP对应的多个上界向量
             d_MP_up_matrix[sel_d_MP_ind] = np.vstack((d_MP_up_matrix[sel_d_MP_ind], b0))
             num_space += 1
+
+            # print(b0)
 
             # 更新状态空间的上边界矩阵b0_mat
             a = np.where(v < v0)[0]
@@ -87,12 +100,17 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
                             b0_mat[d + k - 1, y] = v0[y] - 1
                         else:
                             b0_mat[d + k - 1, y] = b0[y]
+                        if y < a[d]:
+                            b_mat[d + k - 1, y] = v0[y]
+                        else:
+                            b_mat[d + k - 1, y] = v[y]
                     ind_mat[d + k - 1] = num_qlfd
             k = k - 1 + s
             if k == 0:
                 break
             else:
                 b0 = b0_mat[k - 1, :].copy()
+                b = b_mat[k - 1, :].copy()
                 x += 1
     # print("每个d-MP对应的多个上界向量矩阵\n", d_MP_up_matrix)
     # print("空间分解得到的空间数量", nums_pace)
@@ -106,6 +124,8 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
         b_mat = np.zeros((100, num), dtype=int)
         b0_mat = np.zeros((100, num), dtype=int)
         up_vec = d_MP_up_matrix[i]
+        if up_vec.size == 0:
+            break
         ind_mat = up_vec.shape[0] * np.ones(100, dtype=int)
         # 循环次数
         num_while = 0
@@ -129,7 +149,7 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
 
             # 求上界最大值组成的c*
             c_star = np.max(qlfd_up_vec, axis=0)
-            # 根据c*求关键上界向量v（一般两者相同）, v>v0
+            # 根据c*求关键上界向量v, v>v0
             # v = c_star  # 不考虑b会出现错误
             v = np.min(np.vstack((c_star, b)), axis=0)
             # 根据启发式规则计算所有up_vector的H值,然后选择一个求v0
@@ -141,6 +161,8 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
             sel_H_min_ind = H_2_min_ind[0]
             # v0 = qlfd_up_vec[sel_H_min_ind, :]  # 不考虑b会出现错误
             v0 = np.min(np.vstack((qlfd_up_vec[sel_H_min_ind, :], b)), axis=0)
+            print(b0)
+            print(v0)
 
             # 记录由所有d-MC分解得到的所有空间的上下界向量矩阵
             up_matrix = np.vstack([up_matrix, v0])
@@ -168,7 +190,7 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
                 break
             else:
                 b0 = b0_mat[k - 1, :].copy()
-                b = b_mat[k - 1]
+                b = b_mat[k - 1].copy()
                 x += 1
 
     for i in range(down_matrix.shape[0]):
@@ -176,6 +198,7 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
         up = up_matrix[i, :]
         # 计算所有空间的概率的向量化版本
         temp_p = np.array([np.sum(Pr[j, down[j]:(up[j] + 1)]) for j in range(num)])
+        # print("\n", np.prod(temp_p))
         R += np.prod(temp_p)
 
     # print("空间下界向量矩阵\n", down_matrix)
@@ -185,9 +208,9 @@ def up_down_decom(d_MP, d_MC, Pr, num, cap):
 
 
 if __name__ == '__main__':
-    m = 9  # 组件数
-    c = 10  # 组件最大容量
-    ################# 白光晗_2020_TR_基于状态空间分解的两端多状态网络可靠性评估改进方法 #################
+    m = 5  # 组件数
+    c = 3  # 组件最大容量
+    ################# 白光晗_2020_TR_基于状态空间分解的两端多状态网络可靠性评估改进方法 m=6 c=3 #################
     # # 2-MP 9个
     # d_mp = np.array([[2, 2, 0, 0, 0, 0], [1, 2, 0, 1, 1, 0], [0, 2, 0, 2, 2, 0], [1, 1, 0, 0, 1, 1],
     #                 [0, 1, 0, 1, 2, 1], [2, 1, 1, 0, 0, 1], [0, 0, 0, 0, 2, 2], [1, 0, 1, 0, 1, 2],
@@ -198,9 +221,9 @@ if __name__ == '__main__':
     #                 [0, 3, 3, 2, 3, 0], [1, 3, 3, 0, 3, 1], [1, 3, 3, 1, 3, 0], [2, 3, 3, 0, 3, 0],
     #                 [3, 2, 0, 3, 0, 3], [3, 1, 1, 3, 0, 3], [3, 0, 2, 3, 0, 3], [3, 1, 0, 3, 1, 3],
     #                 [3, 0, 1, 3, 1, 3], [3, 0, 0, 3, 2, 3]])
-    # # 组件状态分布矩阵
-    # prob = np.ones((m, 4), dtype=int) * np.array([0.25, 0.3, 0.25, 0.2])
-    ################################# Liu-Tao-Fig-2.1(与上例一致) #################################
+    # 组件状态分布矩阵
+    # prob = np.ones((m, 4), dtype=int) * np.array([0.275, 0.275, 0.25, 0.2])
+    ################################# Liu-Tao-Fig-2.1(与上例一致) m=6 c=3 #################################
     # # 1-MP 4个
     # d_mp = np.array([[0, 0, 0, 0, 1, 1], [0, 1, 0, 1, 1, 0], [1, 0, 1, 0, 0, 1], [1, 1, 0, 0, 0, 0]])
     # # 1-MC 8个
@@ -208,7 +231,7 @@ if __name__ == '__main__':
     #                 [3, 1, 0, 1, 0, 2], [3, 0, 1, 1, 0, 2], [3, 0, 0, 1, 1, 2], [1, 2, 1, 0, 1, 0]])
     # prob = np.array([[0.05, 0.1, 0.25, 0.6], [0.1, 0.3, 0.6, 0], [0.1, 0.9, 0, 0],
     #                  [0.1, 0.9, 0, 0], [0.1, 0.9, 0, 0], [0.05, 0.25, 0.7, 0]])
-    ################################# Liu-Tao-Fig-2.1(与上例一致) #################################
+    ################################# Liu-Tao-Fig-2.1(与上例一致) m=6 c=3 #################################
     # # 3-MP 5个
     # d_mp = np.load('Bridge_3_MP_Mat.npy')
     # # 3-MC 6个
@@ -216,15 +239,26 @@ if __name__ == '__main__':
     #                  [3, 2, 1, 2, 1], [2, 2, 1, 1, 2], [3, 2, 0, 1, 2]])
     # prob = np.array([[0.002, 0.013, 0.125, 0.86], [0.005, 0.01, 0.985, 0], [0.11, 0.89, 0, 0],
     #                  [0.003, 0.012, 0.985, 0], [0.006, 0.015, 0.979, 0]])
-    ################################# 许贝师姐大论文-ARPA网络（无向）-图5.2-6节点9边 #################################    # 3-MP 5个
-    # 2-MP 59个
-    d_mp = np.load('ARPA_2_MP_Mat.npy')
-    # 2-MC 个
-    mat = loadmat('ARPA_2_MC_Mat.mat')
-    Omega = mat['Omega']
-    d_mc = np.array(Omega)
-    row_vector_3sf = np.array([0.015, 0.030, 0.045, 0.061, 0.076, 0.091, 0.106, 0.121, 0.136, 0.152, 0.167])
-    prob = np.tile(row_vector_3sf, (9, 1))
+    ################################# 许贝师姐大论文-ARPA网络（无向）-图5.2-6节点9边 m=9 c=10 #################################
+    # # 1-MP 13个
+    # d_mp = np.load('ARPA_1_MP_Mat.npy')
+    # # 1-MC 31个
+    # mat = loadmat('ARPA_1_MC_Mat.mat')
+    # # # 2-MP 59个
+    # # d_mp = np.load('ARPA_2_MP_Mat.npy')
+    # # # 2-MC 74个
+    # # mat = loadmat('ARPA_2_MC_Mat.mat')
+    #
+    # Omega = mat['Omega']
+    # d_mc = np.array(Omega)
+    # # row_vector_3sf = np.array([0.015, 0.030, 0.045, 0.061, 0.076, 0.091, 0.106, 0.121, 0.136, 0.152, 0.167])
+    # row_vector_3sf = np.array([0.05, 0.05, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+    # prob = np.tile(row_vector_3sf, (9, 1))
+    ################################# LYK_2022_递归不相交和评估最大最小容量向量多状态网络可靠性 m=5 c=3 #################################
+    d_mp = np.array([[2, 1, 1, 2, 1], [2, 1, 1, 1, 2], [2, 1, 1, 1, 3]])
+    d_mc = np.array([[3, 2, 2, 3, 3], [3, 3, 2, 3, 3], [3, 3, 3, 2, 2]])
+    prob = np.array([[0, 0.1, 0.2, 0.7], [0, 0.05, 0.75, 0.2], [0, 0.05, 0.65, 0.3],
+                     [0, 0.3, 0.5, 0.2], [0, 0.35, 0.4, 0.25]])
 
     start_time = time.time()
     Reliability, Num_space, Down_matrix, Up_matrix = up_down_decom(d_mp, d_mc, prob, m, c)
