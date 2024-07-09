@@ -265,7 +265,7 @@ def find_dMPs(G, d, edge_index):
 
 # 示例运行
 G = read_network()
-d = 3
+d = 1
 # 用户指定的边编号顺序, 如果不需要编号则下面为默认选项
 # edge_index = {edge[:2]: i for i, edge in enumerate(G.edges(data=True))}
 # Example-1-NYF-2020-Fig-2（无向桥网络）
@@ -279,5 +279,5 @@ d_MP_Mat, Calcu_time = find_dMPs(G, d, edge_index)
 print("总计算时间 = ", Calcu_time)
 # print(d_MP_Mat)
 # np.save('Bridge_4_MP_Mat.npy', d_MP_Mat)
-np.save('ARPA_3_MP_Mat.npy', d_MP_Mat)
+np.save('ARPA_1_MP_Mat.npy', d_MP_Mat)
 
