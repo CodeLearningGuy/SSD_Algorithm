@@ -77,38 +77,49 @@ def matrices_are_equal(matrix1, matrix2):
 # sorted_result_5 = partial_order_sort(result_5)
 # print(matrices_are_equal(sorted_result_4, sorted_result_5))
 
-lower_bound = [1, 2, 0, 1, 1, 0]
-upper_bound = [1, 2, 3, 3, 3, 0]
-
-lower_bound_2 = [1, 2, 0, 1, 1, 0]
-upper_bound_2 = [1, 3, 3, 3, 1, 0]
-
-lower_bound_3 = [1, 2, 0, 1, 1, 0]
-upper_bound_3 = [1, 3, 3, 1, 3, 0]
-
+lower_bound = [2, 1, 1, 1, 2]
+upper_bound = [3, 3, 2, 3, 3]
+lower_bound_2 = [2, 1, 1, 2, 1]
+upper_bound_2 = [3, 3, 2, 3, 1]
 result_1 = generate_vectors(lower_bound, upper_bound)
 result_2 = generate_vectors(lower_bound_2, upper_bound_2)
+
+lower_bound_3 = [2, 1, 1, 2, 1]
+upper_bound_3 = [3, 3, 2, 3, 3]
+lower_bound_4 = [2, 1, 1, 1, 2]
+upper_bound_4 = [3, 3, 2, 1, 3]
 result_3 = generate_vectors(lower_bound_3, upper_bound_3)
+result_4 = generate_vectors(lower_bound_4, upper_bound_4)
+# lower_bound_5 = [2, 1, 1, 1, 2]
+# upper_bound_5 = [3, 3, 2, 3, 3]
+# lower_bound_6 = [2, 1, 3, 1, 2]
+# upper_bound_6 = [3, 3, 3, 1, 2]
 
-result_mid_1 = merge_and_remove_duplicates(result_1, result_2)
-result_4 = merge_and_remove_duplicates(result_mid_1, result_3)
+# result_1 = generate_vectors(lower_bound, upper_bound)
+# result_2 = generate_vectors(lower_bound_2, upper_bound_2)
+# result_3 = generate_vectors(lower_bound_3, upper_bound_3)
+# result_4 = generate_vectors(lower_bound_4, upper_bound_4)
+# result_5 = generate_vectors(lower_bound_5, upper_bound_5)
+# result_6 = generate_vectors(lower_bound_6, upper_bound_6)
+Result_1 = np.vstack((result_1, result_2))
 
-lower_bound_5 = [1, 2, 0, 1, 1, 0]
-upper_bound_5 = [1, 2, 3, 3, 3, 0]
+# lower_bound_7 = [2, 1, 1, 2, 1]
+# upper_bound_7 = [3, 3, 2, 3, 3]
+# lower_bound_8 = [2, 1, 3, 2, 1]
+# upper_bound_8 = [3, 3, 3, 2, 2]
+# lower_bound_9 = [2, 1, 1, 1, 2]
+# upper_bound_9 = [3, 3, 2, 1, 3]
+# lower_bound_10 = [2, 1, 3, 1, 2]
+# upper_bound_10 = [3, 3, 3, 1, 2]
+# result_7 = generate_vectors(lower_bound_7, upper_bound_7)
+# result_8 = generate_vectors(lower_bound_8, upper_bound_8)
+# result_9 = generate_vectors(lower_bound_9, upper_bound_9)
+# result_10 = generate_vectors(lower_bound_10, upper_bound_10)
+# Result_4 = merge_and_remove_duplicates(result_7, merge_and_remove_duplicates(result_8, result_9))
+# Result_5 = merge_and_remove_duplicates(Result_4, result_10)
+Result_2 = np.vstack((result_3, result_4))
 
-lower_bound_6 = [1, 3, 0, 1, 1, 0]
-upper_bound_6 = [1, 3, 3, 3, 1, 0]
-
-lower_bound_7 = [1, 3, 0, 1, 2, 0]
-upper_bound_7 = [1, 3, 3, 1, 3, 0]
-
-result_5 = generate_vectors(lower_bound_5, upper_bound_5)
-result_6 = generate_vectors(lower_bound_6, upper_bound_6)
-result_7 = generate_vectors(lower_bound_7, upper_bound_7)
-
-result_8 = np.vstack((result_5, result_6, result_7))
-
-sorted_result_4 = partial_order_sort(result_4)
-sorted_result_8 = partial_order_sort(result_8)
-print(matrices_are_equal(sorted_result_4, sorted_result_8))
+sorted_result_1 = partial_order_sort(Result_1)
+sorted_result_2 = partial_order_sort(Result_2)
+print(matrices_are_equal(sorted_result_1, sorted_result_2))
 

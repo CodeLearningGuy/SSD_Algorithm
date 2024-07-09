@@ -99,15 +99,15 @@ if __name__ == "__main__":
     #     (6, 7): 11, (7, -1): 12
     # }
 
-    # Example-3-桥网络（有向）
-    # 节点索引的链接路径结构
-    L = {
-        0: [1, 2], 1: [2, -1], 2: [1, -1]
-    }
-    # 边编号
-    edge_index = {
-        (0, 1): 1, (0, 2): 2, (2, 1): 3, (1, 2): 4, (1, -1): 5, (2, -1): 6
-    }
+    # # Example-3-桥网络（有向）
+    # # 节点索引的链接路径结构
+    # L = {
+    #     0: [1, 2], 1: [2, -1], 2: [1, -1]
+    # }
+    # # 边编号
+    # edge_index = {
+    #     (0, 1): 1, (0, 2): 2, (2, 1): 3, (1, 2): 4, (1, -1): 5, (2, -1): 6
+    # }
 
     # # Example-4-许贝师姐大论文-4*4网格网络（无向）-Fig.5.3
     # # 节点索引的链接路径结构
@@ -140,48 +140,58 @@ if __name__ == "__main__":
     #     (8, 10): 19, (9, 10): 20, (10, -1): 21
     # }
 
+    # # Example-6-许贝师姐大论文-ARPA网络（无向）-Fig.5.2-6节点9边
+    # # 节点索引的链接路径结构
+    # L = {
+    #     0: [1, 2], 1: [2, 3], 2: [1, 3, 4], 3: [1, 2, 4, -1], 4: [2, 3, -1]
+    # }
+    # # 边编号
+    # edge_index = {
+    #     (0, 1): 1, (0, 2): 2, (1, 2): 3, (1, 3): 4, (2, 3): 5, (2, 4): 6,
+    #     (3, 4): 7, (3, -1): 8, (4, -1): 9
+    # }
+
+    # Example-3-桥网络（无向）
+    # 节点索引的链接路径结构
+    L = {
+        0: [1, 2], 1: [2, -1], 2: [1, -1]
+    }
+    # 边编号
+    edge_index = {
+        (0, 1): 1, (0, 2): 4, (1, 2): 3, (1, -1): 2, (2, -1): 5
+    }
 
     # 记录开始时间
     start_time = time.time()
-
     # 更新后的边编号，注意：有向网络可以注释掉这一步
     edge_index_aft = make_undirected(edge_index)
-
     # 标记每个节点到汇点的最小距离
     Ld = distance(L)
-
     # 获取每个距离对应的节点数量
     Q = [0] * (max(Ld) + 1)
     for d in Ld:
         Q[d] += 1
-
     # 初始化
     u = 0
     P = [u]  # 路径从节点0开始
     S = [0] * (max(Ld) + 1)
     all_paths = []
-
     # 执行算法
     find_paths(L, Ld, Q, u, P, S, all_paths)
-
     # 转换路集表示，注意：有向网络直接使用edge_index
     # edge_paths = convert_to_edges(all_paths, edge_index)
     edge_paths = convert_to_edges(all_paths, edge_index_aft)
-
     # 创建最小路集矩阵
     num_edges = len(edge_index)
     matrix = create_matrix(edge_paths, num_edges)
-
     # 记录结束时间
     caltime = time.time() - start_time
 
     print("所有最小路集的边表示:")
     for edge_path in edge_paths:
         print(edge_path)
-
     print("\n路集矩阵:")
     print(matrix)
-
     print("网络中的最小路集数量:", matrix.shape[0])
     print("计算时间:", caltime)
 
