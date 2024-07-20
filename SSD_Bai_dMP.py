@@ -9,6 +9,7 @@ logging.basicConfig(level=logging.DEBUG,filename='test_log.txt',filemode='w',for
 # logger.add("test_log.log")
 
 
+
 def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
     # 假设 d_MP 已经是一个 NumPy 数组
     # m是组件（边）数, mm是所有组件一致的最大容量
@@ -19,21 +20,24 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
     R = 0
     k = 1
     b0 = mm * np.ones(m, dtype=int)
-    # b0 = np.array([3, 3, 3, 2, 3])
+    # b0 = np.array([3, 2, 2, 3, 3])
 
     b = 0 * np.ones(m).astype(np.int32)
     b0_mat = np.zeros((100, m)).astype(np.int32)
     b_mat = np.zeros((100, m)).astype(np.int32)
     ind_mat = NP * np.ones((100, 1), dtype=int)
-    T = np.zeros((10, 3))
     x = 0
     start_time = time.time()
 
     while k:
         ind = ind_mat[k - 1]
+        print(ind)
         w = 0
         for i in range(int(ind)):
             if sum(d_MP[i, :] <= b0) == m:
+                if i == w:
+                    w += 1
+                    continue
                 temp = d_MP[i, :].copy()
                 d_MP[i, :] = d_MP[w, :].copy()
                 d_MP[w, :] = temp
@@ -54,16 +58,16 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
         ww = np.zeros((nnp, m)).astype(np.int32)
         for l in range(nnp):
             for j in range(m):
-                ww[l, j] = np.max([yy[l, j], b[j]]) - v[j]  # (b0-vl+1)*Pr
+                ww[l, j] = np.max([yy[l, j], b[j]]) - v[j]  # (b0-vl+1)*Pr,ww是每个d-MP和v的差值矩阵
             Hy[l] = np.sum(ww[l, :])
 
         # 返回值H值最小的d-MP的索引
-        Hy1 = np.where(Hy == np.min(Hy))[0]
+        # Hy1 = np.where(Hy == np.min(Hy))[0]
 
-        # 返回H值最小的d-MP向量
-        yy1 = np.zeros((Hy1.size, m)).astype(np.int32)
-        for z in range(Hy1.size):
-            yy1[z, :m] = ww[Hy1[z], :]
+        # 返回H值最小的d-MP和v的差值矩阵
+        # yy1 = np.zeros((Hy1.size, m)).astype(np.int32)
+        # for z in range(Hy1.size):
+        #     yy1[z, :m] = ww[Hy1[z], :]
 
         # 在合格d-MP zl中选择一个生成v0
         max_val, max_posi = np.min(Hy), np.argmin(Hy)
@@ -111,7 +115,7 @@ def SSD(d_MP, Pr, m, mm):  # d_MP = np.array([[1,2,3],[1,2,3]])
         # logging.debug("b0 = {}".format(b0))
         # logging.debug("x = {}".format(x))
     caltime = time.time() - start_time
-    return R, caltime, v0_matrix, b0_matrix
+    return R, caltime, v0_matrix, b0_matrix, x
 
 
 if __name__ == '__main__':
@@ -121,8 +125,6 @@ if __name__ == '__main__':
     # prob = np.ones((11, 3)) * np.array([0.4, 0.3, 0.3])
     # m = 11
     # mm = 2
-    # R, caltime = SSD(dmp, prob, m, mm)
-    # print("可靠度:", R)
     # ################################# Example 2 #################################
     # # 3-MP
     # dmp = np.array([[3,2,1,0,0,1],[2,1,1,0,1,2],[2,2,0,0,1,1]])
@@ -130,28 +132,72 @@ if __name__ == '__main__':
     #                  [0.1,0.9,0,0],[0.1,0.9,0,0],[0.05,0.25,0.7,0]])
     # m = 6
     # mm = 3
-    # R, caltime, v0_mat, b0_mat = SSD(dmp, prob, m, mm)  # R = 0.6114149999999999
-    # print("可靠度:", R)
-    # print("计算时间:", caltime)
-    ################################# My_Idea #################################
-    m = 6
-    mm = 3
+    ################################# My_Idea_LiuTao_Fig_2.1 #################################
+    # m = 6
+    # mm = 3
     # # 2-MP 9个
-    # dmp = np.array([[2, 2, 0, 0, 0, 0], [1, 2, 0, 1, 1, 0], [0, 2, 0, 2, 2, 0], [1, 1, 0, 0, 1, 1],
+    # dmp_1 = np.array([[2, 2, 0, 0, 0, 0], [1, 2, 0, 1, 1, 0], [0, 2, 0, 2, 2, 0], [1, 1, 0, 0, 1, 1],
     #                 [0, 1, 0, 1, 2, 1], [2, 1, 1, 0, 0, 1], [0, 0, 0, 0, 2, 2], [1, 0, 1, 0, 1, 2],
     #                 [2, 0, 2, 0, 0, 2]])
-    # 3-MP 16个
-    dmp = np.array([[3, 0, 0, 0, 3, 0], [2, 1, 1, 0, 3, 0], [1, 2, 2, 0, 3, 0], [0, 3, 3, 0, 3, 0],
-                    [2, 1, 0, 0, 2, 1], [1, 2, 1, 0, 2, 1], [0, 3, 2, 0, 2, 1], [3, 0, 0, 1, 2, 1],
-                    [1, 2, 0, 0, 1, 2], [0, 3, 1, 0, 1, 2], [2, 1, 0, 1, 1, 2], [3, 0, 0, 2, 1, 2],
-                    [0, 3, 0, 0, 0, 3], [1, 2, 0, 1, 0, 3], [2, 1, 0, 2, 0, 3], [3, 0, 0, 3, 0, 3]])
-    # dmp = np.array([[1, 2, 1, 2, 1], [1, 2, 1, 1, 2], [2, 3, 2, 1, 1]])
-    prob = np.ones((m, 4), dtype=int) * np.array([0.25, 0.3, 0.25, 0.2])
-    R, caltime, v0_mat, b0_mat = SSD(dmp, prob, m, mm)
-    print("v0_mat = \n", v0_mat)
-    print("b0_mat = \n", b0_mat)
-    print("可靠度:", R)
-    print("计算时间:", caltime)
+    # # 3-MP 16个
+    # dmp_2 = np.array([[3, 0, 0, 0, 3, 0], [2, 1, 1, 0, 3, 0], [1, 2, 2, 0, 3, 0], [0, 3, 3, 0, 3, 0],
+    #                 [2, 1, 0, 0, 2, 1], [1, 2, 1, 0, 2, 1], [0, 3, 2, 0, 2, 1], [3, 0, 0, 1, 2, 1],
+    #                 [1, 2, 0, 0, 1, 2], [0, 3, 1, 0, 1, 2], [2, 1, 0, 1, 1, 2], [3, 0, 0, 2, 1, 2],
+    #                 [0, 3, 0, 0, 0, 3], [1, 2, 0, 1, 0, 3], [2, 1, 0, 2, 0, 3], [3, 0, 0, 3, 0, 3]])
+    # prob = np.ones((m, 4), dtype=int) * np.array([0.275, 0.275, 0.25, 0.2])
+    ################################# Liu Tao Fig-2.1 #################################
+    m = 6
+    mm = 3
+    # 1-MP 4个
+    dmp_1 = np.array([[0, 0, 0, 0, 1, 1], [0, 1, 0, 1, 1, 0], [1, 0, 1, 0, 0, 1], [1, 1, 0, 0, 0, 0]])
+    # 2-MP 5个
+    dmp_2 = np.array([[1, 0, 1, 0, 1, 2], [2, 2, 0, 0, 0, 0], [2, 1, 1, 0, 0, 1], [1, 1, 0, 0, 1, 1],
+                    [1, 2, 0, 1, 1, 0]])
+    prob = np.array([[0.05, 0.1, 0.25, 0.6], [0.1, 0.3, 0.6, 0], [0.1, 0.9, 0, 0],
+                     [0.1, 0.9, 0, 0], [0.1, 0.9, 0, 0], [0.05, 0.25, 0.7, 0]])
+    ################################# NYF_2020_Fig_2(无向桥网络) #################################
+    # m = 5
+    # mm = 3
+    # # 3-MP 5个
+    # dmp_1 = np.load('Bridge_3_MP_Mat.npy')
+    # # 4-MP 2个
+    # dmp_2 = np.load('Bridge_4_MP_Mat.npy')
+    # prob = np.array([[0.002, 0.013, 0.125, 0.86], [0.005, 0.01, 0.985, 0], [0.11, 0.89, 0, 0],
+    #                  [0.003, 0.012, 0.985, 0], [0.006, 0.015, 0.979, 0]])
+    ################################# 许贝师姐大论文-ARPA网络（无向）-图5.2-6节点9边 #################################
+    # m = 9
+    # mm = 10
+    # # 1-MP 13个
+    # dmp_1 = np.load('ARPA_1_MP_Mat.npy')
+    # # 2-MP 59个
+    # dmp_2 = np.load('ARPA_2_MP_Mat.npy')
+    # # # 2-MP 59个
+    # # dmp_1 = np.load('ARPA_2_MP_Mat.npy')
+    # # # 3-MP 175个
+    # # dmp_2 = np.load('ARPA_3_MP_Mat.npy')
+    #
+    # # row_vector_3sf = np.array([0.015, 0.030, 0.045, 0.061, 0.076, 0.091, 0.106, 0.121, 0.136, 0.152, 0.167])
+    # row_vector_3sf = np.array([0.05, 0.05, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+    # prob = np.tile(row_vector_3sf, (9, 1))
+    #
+    R_1, caltime_1, _, _, x1 = SSD(dmp_1, prob, m, mm)
+    R_2, caltime_2, _, _, x2 = SSD(dmp_2, prob, m, mm)
+    R = R_1 - R_2
+    cal_time = caltime_1 + caltime_2
+    x = x1 + x2
+    np.set_printoptions(precision=10)
+    print("\n网络恰好满足需求水平d时的可靠度:", R)
+    print("计算时间:", cal_time)
+    print("空间分解过程中的空间总数:", x)
 
+    # print("由d-MP分解得到的下界向量矩阵:\n", v0_mat)
+    # print("由d-MP分解得到的上界向量矩阵:\n", b0_mat)
 
-
+    # m = 5
+    # mm = 3
+    # dmp = np.array([[2,1,1,2,1],[2,1,1,1,2],[2,1,1,1,3]])
+    # prob = np.array([[0.05,0.1,0.25,0.6],[0.1,0.3,0.6,0],[0.1,0.9,0,0],
+    #                  [0.1,0.9,0,0],[0.1,0.9,0,0],[0.05,0.25,0.7,0]])
+    # R, caltime, v0_mat, b0_mat, x = SSD(dmp, prob, m, mm)
+    # print("由d-MP分解得到的下界向量矩阵:\n", v0_mat)
+    # print("由d-MP分解得到的上界向量矩阵:\n", b0_mat)
