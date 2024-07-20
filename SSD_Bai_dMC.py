@@ -11,8 +11,8 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
     U = 0
     k = 1
     b = mm * np.ones(m, dtype=int)
-    b0 = 0 * np.ones(m, dtype=int)
-    # b0 = np.array([1, 2, 1, 2, 1])
+    # b0 = 0 * np.ones(m, dtype=int)
+    b0 = np.array([2, 1, 1, 1, 2])
 
     b0_matrix = np.empty((0, m), dtype=int)  # 存储下界
     v0_matrix = np.empty((0, m), dtype=int)  # 存储上界
@@ -29,6 +29,9 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
         for i in range(int(ind)):
             # 将大于b0的d-MC放置在d-MC数组顶部
             if sum(d_MC[i, :] >= b0) == m:
+                if i == w:
+                    w += 1
+                    continue
                 temp = d_MC[i, :].copy()
                 d_MC[i, :] = d_MC[w, :].copy()
                 d_MC[w, :] = temp
@@ -55,7 +58,8 @@ def SSD(d_MC, Pr, m, mm):  # m是组件数，mm是组件容量
 
         # 在合格d-MC cl中选择一个生成下边界向量v0
         # max_val, max_posi = np.max(Hy), np.argmax(Hy)
-        ax_val, max_posi = np.min(Hy), np.argmin(Hy)  # 基于d-MC的分解也应该选择H(zl)最小的d-MC
+        # 基于d-MC分解也应该选择H(zl)最小的d-MC
+        ax_val, max_posi = np.min(Hy), np.argmin(Hy)
         v0 = np.min(np.vstack((yy[max_posi, :m], b)), axis=0)
 
         # 记录由所有d-MC分解得到的所有空间的上下界向量矩阵
@@ -115,23 +119,27 @@ if __name__ == '__main__':
     # print("可靠度:", R)
     # print("计算时间:", caltime)
     ################################# My_Idea #################################
-    m = 6
+    m = 5
     mm = 3
     # # 1-MC 10个
-    # dmc = np.array([[3, 3, 3, 3, 0, 1],[3, 3, 3, 3, 1, 0],[0, 3, 1, 3, 3, 3],[1, 3, 0, 3, 3, 3],
+    # dmc_1 = np.array([[3, 3, 3, 3, 0, 1],[3, 3, 3, 3, 1, 0],[0, 3, 1, 3, 3, 3],[1, 3, 0, 3, 3, 3],
     #                 [0, 0, 3, 3, 3, 1],[0, 1, 3, 3, 3, 0],[1, 0, 3, 3, 3, 0],[3, 3, 0, 0, 1, 3],
     #                 [3, 3, 0, 1, 0, 3],[3, 3, 1, 0, 0, 3]])
-    # 2-MC 18个
-    dmc = np.array([[3, 0, 3, 3, 3, 2], [3, 1, 3, 3, 3, 1], [3, 2, 3, 3, 3, 0], [0, 3, 3, 3, 2, 3],
-                    [1, 3, 3, 3, 1, 3], [2, 3, 3, 3, 0, 3], [0, 3, 3, 0, 3, 2], [0, 3, 3, 1, 3, 1],
-                    [0, 3, 3, 2, 3, 0], [1, 3, 3, 0, 3, 1], [1, 3, 3, 1, 3, 0], [2, 3, 3, 0, 3, 0],
-                    [3, 2, 0, 3, 0, 3], [3, 1, 1, 3, 0, 3], [3, 0, 2, 3, 0, 3], [3, 1, 0, 3, 1, 3],
-                    [3, 0, 1, 3, 1, 3], [3, 0, 0, 3, 2, 3]])
-    # dmc = np.array([[3, 2, 3, 3, 3], [3, 3, 3, 2, 3]])
-    prob = np.ones((m, 4), dtype=int) * np.array([0.25,0.3,0.25,0.2])
-    R, caltime, b0_mat, v0_mat = SSD(dmc, prob, m, mm)
-    print("b0_mat = \n", b0_mat)
-    print("v0_mat = \n", v0_mat)
-    print("可靠度:", R)
-    print("计算时间:", caltime)
+    # # 2-MC 18个
+    # dmc_2 = np.array([[3, 0, 3, 3, 3, 2], [3, 1, 3, 3, 3, 1], [3, 2, 3, 3, 3, 0], [0, 3, 3, 3, 2, 3],
+    #                 [1, 3, 3, 3, 1, 3], [2, 3, 3, 3, 0, 3], [0, 3, 3, 0, 3, 2], [0, 3, 3, 1, 3, 1],
+    #                 [0, 3, 3, 2, 3, 0], [1, 3, 3, 0, 3, 1], [1, 3, 3, 1, 3, 0], [2, 3, 3, 0, 3, 0],
+    #                 [3, 2, 0, 3, 0, 3], [3, 1, 1, 3, 0, 3], [3, 0, 2, 3, 0, 3], [3, 1, 0, 3, 1, 3],
+    #                 [3, 0, 1, 3, 1, 3], [3, 0, 0, 3, 2, 3]])
 
+    dmc = np.array([[3,3,2,1,3],[3,3,3,1,2]])
+    prob = np.ones((m, 4), dtype=int) * np.array([0.275,0.275,0.25,0.2])
+    R, cal_time, b0_mat, v0_mat = SSD(dmc, prob, m, mm)
+    # R_1, caltime_1, _, _ = SSD(dmc_1, prob, m, mm)
+    # R_2, caltime_2, _, _ = SSD(dmc_2, prob, m, mm)
+    # R = R_1 - R_2
+    # cal_time = caltime_1 + caltime_2
+    # print("\n网络恰好满足需求水平d时的可靠度:", R)
+    # print("计算时间:", cal_time)
+    print("由d-MP分解得到的上界向量矩阵:\n", v0_mat)
+    print("由d-MP分解得到的下界向量矩阵:\n", b0_mat)
